@@ -1,4 +1,5 @@
 
+import { Link } from "react-router-dom";
 function Inicio() {
   return (
     <div className="inicio-container">
@@ -26,10 +27,9 @@ function Inicio() {
             📋 Evaluaciones
           </a>
 
-
-          <a href="#" className="menu-item">
-            👤 Mi perfil
-          </a>
+          <Link to="/perfil" className="menu-item">
+  👤 Mi perfil
+</Link>
 
         </nav>
 

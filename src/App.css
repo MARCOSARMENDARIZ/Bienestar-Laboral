@@ -363,3 +363,134 @@ main > div p {
   color: #6b7280;
 }
 
+.perfil-container {
+  min-height: 100vh;
+  background: #f5f6fa;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+/* Encabezado */
+
+.perfil-header {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  margin-bottom: 25px;
+}
+
+.perfil-foto {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #e9ecf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 45px;
+}
+
+.perfil-titulo {
+  flex: 1;
+}
+
+.perfil-titulo h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #222;
+}
+
+.perfil-titulo p {
+  margin: 6px 0 0;
+  color: #777;
+  font-size: 16px;
+}
+
+/* Botón */
+
+.btn-editar {
+  border: none;
+  background: #4f46e5;
+  color: white;
+  padding: 12px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-editar:hover {
+  background: #3730a3;
+}
+
+/* Contenido */
+
+.perfil-contenido {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+/* Tarjetas */
+
+.perfil-card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.perfil-card h2 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  font-size: 20px;
+  color: #222;
+}
+
+/* Datos */
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.dato:last-child {
+  border-bottom: none;
+}
+
+.dato span {
+  font-size: 13px;
+  color: #888;
+}
+
+.dato strong {
+  font-size: 15px;
+  color: #333;
+}
+
+/* Responsive */
+
+@media (max-width: 800px) {
+  .perfil-contenido {
+    grid-template-columns: 1fr;
+  }
+
+  .perfil-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .btn-editar {
+    width: 100%;
+  }
+}
+
+
+
