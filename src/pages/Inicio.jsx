@@ -1,6 +1,16 @@
 
+import { useEffect, useState, use } from "react";
 import { Link } from "react-router-dom";
 function Inicio() {
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem("usuario");
+    if (usuarioGuardado){
+      setUsuario(JSON.parse(usuarioGuardado));
+    }
+  }, []);
+
   return (
     <div className="inicio-container">
 
@@ -23,21 +33,22 @@ function Inicio() {
             ❤️ Bienestar
           </a>
 
-          <a href="#" className="menu-item">
+          <Link to="/evaluaciones" className="menu-item">
             📋 Evaluaciones
-          </a>
+          </Link>
 
           <Link to="/perfil" className="menu-item">
   👤 Mi perfil
 </Link>
-
+       
         </nav>
 
         <div className="sidebar-bottom">
-
-          <a href="#" className="menu-item">
-            ⚙️ Configuración
-          </a>
+          {usuario?.rol ==="admin" && (
+           <Link to="/configuracion" className="menu-item">
+  ⚙️ Configuración
+</Link>
+          )}
 
           <a href="/" className="menu-item logout">
             🚪 Cerrar sesión
@@ -55,7 +66,7 @@ function Inicio() {
           <h1>Bienvenido a Bienestar IA</h1>
 
           <div className="user">
-            👤 Usuario
+            👤 {usuario ? usuario.nombre : "Cargando...."}
           </div>
         </div>
 

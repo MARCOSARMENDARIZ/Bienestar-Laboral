@@ -491,6 +491,511 @@ main > div p {
     width: 100%;
   }
 }
+.config-container {
+  background-color: #f4f6f8;
+  padding: 2rem;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+  background-color: #ffffff;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.config-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.config-header p {
+  margin: 0.2rem 0 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.btn-volver {
+  text-decoration: none;
+  font-size: 1.3rem;
+  color: #4b5563;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.btn-volver:hover {
+  background-color: #e5e7eb;
+}
+
+.config-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 0.8rem;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.badge-contador {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Tabla */
+.tabla-responsive {
+  overflow-x: auto;
+}
+
+.tabla-usuarios {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabla-usuarios th {
+  background-color: #f9fafb;
+  padding: 0.85rem 1rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabla-usuarios td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.tabla-usuarios tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.columna-nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.user-avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* Badges de Rol */
+.badge-rol {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-rol.admin {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-rol.usuario {
+  background-color: #e0f2fe;
+  color: #075985;
+}
+
+.cargando-texto {
+  color: #6b7280;
+  padding: 1rem 0;
+}
+/* Alineación y espaciado entre el botón y el texto dentro del span */
+.badge-contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem; /* Controla la distancia entre el botón y el contador de usuarios */
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Ajuste opcional para el botón cuando está dentro de badge-contador */
+.btn-agregar-usuario {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-agregar-usuario:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+/* =========================================
+   DISEÑO MODERNO PARA MÓDULO DE ENCUESTAS
+   ========================================= */
+
+/* Contenedor principal */
+.evaluaciones-container {
+  padding: 2rem;
+  max-width: 1240px;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0f172a;
+}
+
+/* Grid de Métricas (KPIs) */
+.evaluaciones-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.kpi-card {
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.kpi-card h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-numero {
+  margin: 0.2rem 0 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kpi-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.kpi-icon.blue { background-color: #eff6ff; color: #2563eb; }
+.kpi-icon.green { background-color: #f0fdf4; color: #16a34a; }
+.kpi-icon.orange { background-color: #fff7ed; color: #ea580c; }
+
+/* Grid de Encuestas */
+.encuestas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.encuesta-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.encuesta-card:hover {
+  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+.encuesta-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.encuesta-card h3 {
+  margin: 0.25rem 0 0.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.encuesta-desc {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+/* Indicadores de estado */
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.status-pill.activa {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-pill.cerrada {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.encuesta-meta {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 0.75rem 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+
+/* Botones de Acción */
+.encuesta-acciones {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-responder {
+  flex: 1;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-responder:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-resultados {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-resultados:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Formulario para responder dentro del Modal */
+.pregunta-box {
+  background-color: #f8fafc;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.pregunta-titulo {
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.rating-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-rating {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.btn-rating:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.btn-rating.activo {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-agregar-pregunta {
+  width: 100%;
+  background: #f0f9ff;
+  border: 1px dashed #0284c7;
+  color: #0284c7;
+  padding: 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-agregar-pregunta:hover {
+  background: #e0f2fe;
+}
+
+/* =========================================
+   MODAL SIN FONDO OSCURO (FLOTANTE/LIMPIO)
+   ========================================= */
+
+/* Fondo transparente con clic activo en el resto de la interfaz */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: transparent; /* Sin fondo oscuro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  pointer-events: none; /* Permite hacer clic o ver el fondo si lo deseas */
+}
+
+/* Contenedor del Modal con sombra proyectada */
+.modal-contenido {
+  background-color: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  padding: 1.8rem;
+  pointer-events: auto; /* Reactiva los clics dentro del modal */
+  border: 1px solid #cbd5e1;
+  
+  /* Sombra más marcada para que resalte sin el fondo oscuro */
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.18), 
+              0 8px 16px -6px rgba(15, 23, 42, 0.12);
+              
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: modalAparecer 0.2s ease-out;
+}
+
+/* Animación suave al abrir */
+@keyframes modalAparecer {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 
 

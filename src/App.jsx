@@ -6,6 +6,8 @@ import Inicio from './pages/Inicio'
 import Perfil from './pages/Perfil' 
 
 import './App.css'
+import Configuracion from './pages/configuracion'
+import Evaluaciones from './pages/Evaluaciones'
 
 function App() {
 
@@ -22,6 +24,12 @@ function App() {
 
         {/* PERFIL */}
         <Route path="/perfil" element={<Perfil />} />
+
+        {/* CONFIGURACION */}
+        <Route path="/configuracion" element={<Configuracion />} />
+
+        {/* EVALUACIONES */}
+        <Route path="/evaluaciones" element={<Evaluaciones />} />
 
       </Routes>
 

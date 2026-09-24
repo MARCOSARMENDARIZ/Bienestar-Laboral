@@ -28,16 +28,9 @@ app.get('/', (req, res) => {
   res.send('Servidor de Node.js funcionando correctamente');
 });
 
-// Ruta para obtener todos los usuarios
-app.get('/api/usuarios', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, nombre, email, rol FROM usuarios');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error al conectar con la base de datos:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
-  }
-});
+// =========================================================================
+// RUTAS DE USUARIOS Y AUTENTICACIÓN
+// =========================================================================
 
 // Endpoint de inicio de sesión
 app.post('/api/login', async (req, res) => {
@@ -67,6 +60,263 @@ app.post('/api/login', async (req, res) => {
       exito: false,
       mensaje: 'Error en el servidor'
     });
+  }
+});
+
+// Endpoint para obtener el perfil de un usuario específico
+app.get('/api/perfil/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+         u.id, 
+         u.nombre, 
+         u.email, 
+         u.rol, 
+         p.telefono, 
+         COALESCE(p.puesto, u.rol) AS puesto, 
+         p.departamento, 
+         p.fecha_ingreso
+       FROM usuarios u 
+       LEFT JOIN perfiles p ON u.id = p.usuario_id 
+       WHERE u.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length > 0) {
+      res.json({ exito: true, perfil: result.rows[0] });
+    } else {
+      res.status(404).json({ exito: false, mensaje: 'Usuario no encontrado' });
+    }
+  } catch (error) {
+    console.error('Error al obtener el perfil:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error en el servidor' });
+  }
+});
+
+// GET: Obtener la lista completa de usuarios con sus perfiles
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.nombre, u.email, u.rol, p.puesto, p.departamento 
+       FROM usuarios u 
+       LEFT JOIN perfiles p ON u.id = p.usuario_id 
+       ORDER BY u.id ASC`
+    );
+
+    res.json({ exito: true, usuarios: result.rows });
+  } catch (error) {
+    console.error('Error al obtener la lista de usuarios:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error al consultar usuarios' });
+  }
+});
+
+// POST: Registrar un nuevo usuario y crear su perfil asociado
+app.post('/api/usuarios/registrar', async (req, res) => {
+  const { nombre, email, password, rol, puesto, departamento, telefono } = req.body;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const insertUsuarioQuery = `
+      INSERT INTO usuarios (nombre, email, password_hash, rol)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id;
+    `;
+    const resUsuario = await client.query(insertUsuarioQuery, [nombre, email, password, rol || 'usuario']);
+    const nuevoUsuarioId = resUsuario.rows[0].id;
+
+    const insertPerfilQuery = `
+      INSERT INTO perfiles (usuario_id, telefono, puesto, departamento, fecha_ingreso)
+      VALUES ($1, $2, $3, $4, CURRENT_DATE);
+    `;
+    await client.query(insertPerfilQuery, [nuevoUsuarioId, telefono || null, puesto || null, departamento || null]);
+
+    await client.query('COMMIT');
+
+    res.json({ exito: true, mensaje: 'Usuario registrado correctamente', usuarioId: nuevoUsuarioId });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al registrar usuario:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ exito: false, mensaje: 'El correo electrónico ya está registrado.' });
+    }
+    res.status(500).json({ exito: false, mensaje: 'Error interno en el servidor al crear usuario.' });
+  } finally {
+    client.release();
+  }
+});
+
+// =========================================================================
+// ENDPOINTS DE ENCUESTAS
+// =========================================================================
+
+// 1. GET: Obtener todas las encuestas con total de preguntas y respuestas
+app.get('/api/encuestas', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        e.id,
+        e.titulo,
+        e.descripcion,
+        e.estado,
+        TO_CHAR(e.fecha_creacion, 'DD/MM/YYYY') AS "fechaCreacion",
+        COUNT(DISTINCT p.id)::INT AS "preguntasCount",
+        COUNT(DISTINCT re.id)::INT AS "respuestasCount"
+      FROM encuestas e
+      LEFT JOIN preguntas p ON e.id = p.encuesta_id
+      LEFT JOIN respuestas_encuesta re ON e.id = re.encuesta_id
+      GROUP BY e.id
+      ORDER BY e.fecha_creacion DESC;
+    `;
+
+    const result = await pool.query(query);
+    res.json({ exito: true, encuestas: result.rows });
+  } catch (error) {
+    console.error('Error al obtener encuestas:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error al consultar las encuestas' });
+  }
+});
+
+// 2. GET: Obtener detalle de una encuesta específica (con preguntas y opciones)
+app.get('/api/encuestas/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const encuestaRes = await pool.query('SELECT * FROM encuestas WHERE id = $1', [id]);
+    if (encuestaRes.rows.length === 0) {
+      return res.status(404).json({ exito: false, mensaje: 'Encuesta no encontrada' });
+    }
+
+    const preguntasRes = await pool.query(
+      'SELECT id, texto_pregunta, tipo_respuesta, orden FROM preguntas WHERE encuesta_id = $1 ORDER BY orden ASC',
+      [id]
+    );
+
+    const preguntas = preguntasRes.rows;
+
+    for (let pregunta of preguntas) {
+      if (pregunta.tipo_respuesta === 'opcion') {
+        const opcionesRes = await pool.query(
+          'SELECT id, texto_opcion FROM opciones_pregunta WHERE pregunta_id = $1',
+          [pregunta.id]
+        );
+        pregunta.opciones = opcionesRes.rows;
+      }
+    }
+
+    res.json({
+      exito: true,
+      encuesta: {
+        ...encuestaRes.rows[0],
+        preguntas
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener detalle de encuesta:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error al cargar el detalle de la encuesta' });
+  }
+});
+
+// 3. POST: Crear una nueva encuesta con preguntas y opciones (Transacción SQL)
+app.post('/api/encuestas', async (req, res) => {
+  const { titulo, descripcion, creado_por, preguntas } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const insertEncuestaQuery = `
+      INSERT INTO encuestas (titulo, descripcion, creado_por)
+      VALUES ($1, $2, $3)
+      RETURNING id, titulo, descripcion, estado, fecha_creacion;
+    `;
+    const encuestaResult = await client.query(insertEncuestaQuery, [titulo, descripcion, creado_por || null]);
+    const nuevaEncuesta = encuestaResult.rows[0];
+
+    if (preguntas && Array.isArray(preguntas)) {
+      for (let i = 0; i < preguntas.length; i++) {
+        const p = preguntas[i];
+        const insertPreguntaQuery = `
+          INSERT INTO preguntas (encuesta_id, texto_pregunta, tipo_respuesta, orden)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id;
+        `;
+        const preguntaResult = await client.query(insertPreguntaQuery, [
+          nuevaEncuesta.id,
+          p.texto_pregunta,
+          p.tipo_respuesta,
+          i + 1
+        ]);
+
+        if (p.tipo_respuesta === 'opcion' && Array.isArray(p.opciones)) {
+          for (let opcionTexto of p.opciones) {
+            await client.query(
+              'INSERT INTO opciones_pregunta (pregunta_id, texto_opcion) VALUES ($1, $2)',
+              [preguntaResult.rows[0].id, opcionTexto]
+            );
+          }
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ exito: true, mensaje: 'Encuesta creada con éxito', encuesta: nuevaEncuesta });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al crear encuesta:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error interno al guardar la encuesta' });
+  } finally {
+    client.release();
+  }
+});
+
+// 4. POST: Guardar las respuestas de un usuario
+app.post('/api/encuestas/:id/respuestas', async (req, res) => {
+  const encuesta_id = req.params.id;
+  const { usuario_id, respuestas } = req.body;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const insertRespuestaCabecera = `
+      INSERT INTO respuestas_encuesta (encuesta_id, usuario_id)
+      VALUES ($1, $2)
+      RETURNING id;
+    `;
+    const resCabecera = await client.query(insertRespuestaCabecera, [encuesta_id, usuario_id || null]);
+    const respuestaEncuestaId = resCabecera.rows[0].id;
+
+    if (respuestas && Array.isArray(respuestas)) {
+      const insertDetalle = `
+        INSERT INTO detalle_respuestas (respuesta_encuesta_id, pregunta_id, opcion_id, valor_numero, valor_texto)
+        VALUES ($1, $2, $3, $4, $5);
+      `;
+
+      for (let r of respuestas) {
+        await client.query(insertDetalle, [
+          respuestaEncuestaId,
+          r.pregunta_id,
+          r.opcion_id || null,
+          r.valor_numero || null,
+          r.valor_texto || null
+        ]);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ exito: true, mensaje: 'Respuestas guardadas con éxito' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al responder encuesta:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error al registrar tus respuestas' });
+  } finally {
+    client.release();
   }
 });
 
