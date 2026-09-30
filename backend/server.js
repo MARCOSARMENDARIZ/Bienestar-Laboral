@@ -7,6 +7,7 @@ console.log("🔒 Password cargada correctamente:", process.env.DB_PASSWORD ? "S
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
@@ -32,28 +33,39 @@ app.get('/', (req, res) => {
 // RUTAS DE USUARIOS Y AUTENTICACIÓN
 // =========================================================================
 
-// Endpoint de inicio de sesión
+// Endpoint de inicio de sesión (Corregido para comparar hash con bcrypt)
 app.post('/api/login', async (req, res) => {
   const { usuario, password } = req.body;
 
   try {
     const result = await pool.query(
-      'SELECT id, nombre, email, rol FROM usuarios WHERE nombre = $1 AND password_hash = $2',
-      [usuario, password]
+      'SELECT id, nombre, email, rol, password_hash FROM usuarios WHERE nombre = $1 OR email = $1',
+      [usuario]
     );
 
-    if (result.rows.length > 0) {
-      res.json({
-        exito: true,
-        mensaje: 'Inicio de sesión exitoso',
-        usuario: result.rows[0]
-      });
-    } else {
-      res.status(401).json({
+    if (result.rows.length === 0) {
+      return res.status(401).json({
         exito: false,
         mensaje: 'Usuario o contraseña incorrectos'
       });
     }
+
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+
+    if (!match) {
+      return res.status(401).json({
+        exito: false,
+        mensaje: 'Usuario o contraseña incorrectos'
+      });
+    }
+
+    delete user.password_hash; // Evitar enviar el hash al frontend
+    res.json({
+      exito: true,
+      mensaje: 'Inicio de sesión exitoso',
+      usuario: user
+    });
   } catch (error) {
     console.error('Error durante el login:', error);
     res.status(500).json({
@@ -112,7 +124,7 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-// POST: Registrar un nuevo usuario y crear su perfil asociado
+// POST: Registrar un nuevo usuario y crear su perfil asociado (Corregido con bcrypt)
 app.post('/api/usuarios/registrar', async (req, res) => {
   const { nombre, email, password, rol, puesto, departamento, telefono } = req.body;
 
@@ -121,12 +133,14 @@ app.post('/api/usuarios/registrar', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    const hash = await bcrypt.hash(password, 10);
+
     const insertUsuarioQuery = `
       INSERT INTO usuarios (nombre, email, password_hash, rol)
       VALUES ($1, $2, $3, $4)
       RETURNING id;
     `;
-    const resUsuario = await client.query(insertUsuarioQuery, [nombre, email, password, rol || 'usuario']);
+    const resUsuario = await client.query(insertUsuarioQuery, [nombre, email, hash, rol || 'usuario']);
     const nuevoUsuarioId = resUsuario.rows[0].id;
 
     const insertPerfilQuery = `
@@ -147,6 +161,81 @@ app.post('/api/usuarios/registrar', async (req, res) => {
     res.status(500).json({ exito: false, mensaje: 'Error interno en el servidor al crear usuario.' });
   } finally {
     client.release();
+  }
+});
+
+// DELETE: Eliminar un usuario y su perfil asociado
+app.delete('/api/usuarios/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // 1. Eliminar el perfil asociado en la tabla 'perfiles'
+    await client.query('DELETE FROM perfiles WHERE usuario_id = $1', [id]);
+
+    // 2. Eliminar el registro de la tabla 'usuarios'
+    const result = await client.query('DELETE FROM usuarios WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ exito: false, mensaje: 'Usuario no encontrado' });
+    }
+
+    await client.query('COMMIT');
+    res.json({ exito: true, mensaje: 'Usuario eliminado correctamente' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al eliminar usuario:', error);
+    res.status(500).json({ exito: false, mensaje: 'Error al eliminar el usuario en la base de datos' });
+  } finally {
+    client.release();
+  }
+});
+
+// =========================================================================
+// ENDPOINTS DE RECUPERACIÓN DE CONTRASEÑA
+// =========================================================================
+
+// Endpoint 1: Verificar si el correo existe
+app.post('/api/verificar-email', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const result = await pool.query('SELECT id, email FROM usuarios WHERE email = $1', [email]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ exito: false, mensaje: 'El correo electrónico no está registrado' });
+    }
+
+    return res.json({ exito: true, mensaje: 'Usuario encontrado' });
+  } catch (error) {
+    console.error('Error al verificar correo:', error);
+    return res.status(500).json({ exito: false, mensaje: 'Error interno del servidor' });
+  }
+});
+
+// Endpoint 2: Cambiar la contraseña directamente (Corregido a password_hash)
+app.post('/api/cambiar-password-directo', async (req, res) => {
+  const { email, nuevaPassword } = req.body;
+
+  try {
+    const passwordHash = await bcrypt.hash(nuevaPassword, 10);
+
+    const result = await pool.query(
+      'UPDATE usuarios SET password_hash = $1 WHERE email = $2 RETURNING id',
+      [passwordHash, email]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ exito: false, mensaje: 'No se pudo encontrar el usuario' });
+    }
+
+    return res.json({ exito: true, mensaje: 'Contraseña actualizada exitosamente' });
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    return res.status(500).json({ exito: false, mensaje: 'Error al actualizar la contraseña' });
   }
 });
 

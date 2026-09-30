@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 
 function Configuracion() {
   const [listaUsuarios, setListaUsuarios] = useState([]);
+  const [listaPropuestas, setListaPropuestas] = useState([]);
   const [cargando, setCargando] = useState(true);
-  
-  // Estado para el modal y formulario
+  const [cargandoPropuestas, setCargandoPropuestas] = useState(true);
+
+  // Estado para el modal y formulario de registro
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [nuevoUsuario, setNuevoUsuario] = useState({
@@ -17,6 +19,12 @@ function Configuracion() {
     departamento: "",
     telefono: ""
   });
+
+  // Estados para el modal de Cambio de Contraseña
+  const [mostrarModalPassword, setMostrarModalPassword] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [nuevaPassword, setNuevaPassword] = useState("");
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
   // Cargar lista de usuarios
   const obtenerUsuarios = () => {
@@ -31,8 +39,20 @@ function Configuracion() {
       .finally(() => setCargando(false));
   };
 
+  // Cargar lista de propuestas
+  const obtenerPropuestas = () => {
+    fetch("http://localhost:5000/api/propuestas")
+      .then((res) => res.json())
+      .then((data) => {
+        setListaPropuestas(Array.isArray(data) ? data : data.propuestas || []);
+      })
+      .catch((err) => console.error("Error al obtener lista de propuestas:", err))
+      .finally(() => setCargandoPropuestas(false));
+  };
+
   useEffect(() => {
     obtenerUsuarios();
+    obtenerPropuestas();
   }, []);
 
   const handleChange = (e) => {
@@ -58,7 +78,6 @@ function Configuracion() {
       if (res.ok && data.exito) {
         alert("¡Usuario registrado exitosamente!");
         setMostrarModal(false);
-        // Limpiar formulario
         setNuevoUsuario({
           nombre: "",
           email: "",
@@ -68,7 +87,6 @@ function Configuracion() {
           departamento: "",
           telefono: ""
         });
-        // Recargar la tabla
         obtenerUsuarios();
       } else {
         alert(data.mensaje || "Error al registrar usuario");
@@ -78,6 +96,76 @@ function Configuracion() {
       alert("Error de conexión con el servidor");
     } finally {
       setGuardando(false);
+    }
+  };
+
+  // Abrir modal de cambio de contraseña
+  const abrirModalCambioPassword = (usuario) => {
+    setUsuarioSeleccionado(usuario);
+    setNuevaPassword("");
+    setMostrarModalPassword(true);
+  };
+
+  // Petición para actualizar la contraseña directamente
+  const handleCambiarPassword = async (e) => {
+    e.preventDefault();
+
+    if (!nuevaPassword || nuevaPassword.trim().length < 4) {
+      alert("La contraseña debe tener al menos 4 caracteres.");
+      return;
+    }
+
+    setCambiandoPassword(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/cambiar-password-directo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: usuarioSeleccionado.email,
+          nuevaPassword: nuevaPassword
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.exito) {
+        alert(`¡Contraseña actualizada con éxito para ${usuarioSeleccionado.nombre}!`);
+        setMostrarModalPassword(false);
+        setUsuarioSeleccionado(null);
+        setNuevaPassword("");
+      } else {
+        alert(data.mensaje || "Error al cambiar la contraseña");
+      }
+    } catch (error) {
+      console.error("Error en la petición:", error);
+      alert("Error de conexión con el servidor al cambiar la contraseña.");
+    } finally {
+      setCambiandoPassword(false);
+    }
+  };
+
+  // Función para eliminar un usuario
+  const handleEliminar = async (id, nombre) => {
+    const confirmar = window.confirm(`¿Estás seguro de que deseas eliminar a ${nombre}?`);
+    if (!confirmar) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/usuarios/${id}`, {
+        method: "DELETE"
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.exito) {
+        alert("Usuario eliminado correctamente.");
+        setListaUsuarios((prev) => prev.filter((usr) => usr.id !== id));
+      } else {
+        alert(data.mensaje || "Error al eliminar el usuario.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      alert("Error de conexión al intentar eliminar el usuario.");
     }
   };
 
@@ -96,6 +184,7 @@ function Configuracion() {
 
       {/* CONTENIDO PRINCIPAL */}
       <div className="config-contenido">
+        {/* SECCIÓN USUARIOS */}
         <div className="config-card full-width">
           <div className="card-header">
             <h2>👥 Usuarios Registrados</h2>
@@ -123,6 +212,7 @@ function Configuracion() {
                     <th>Rol</th>
                     <th>Puesto</th>
                     <th>Departamento</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -141,8 +231,93 @@ function Configuracion() {
                       </td>
                       <td>{usr.puesto || "—"}</td>
                       <td>{usr.departamento || "—"}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            className="btn-password-usuario"
+                            onClick={() => abrirModalCambioPassword(usr)}
+                            title="Cambiar contraseña"
+                            style={{
+                              backgroundColor: "#f59e0b",
+                              color: "#fff",
+                              border: "none",
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontSize: "0.85rem"
+                            }}
+                          >
+                            Cambio de Contraseña
+                          </button>
+                          <button
+                            className="btn-eliminar-usuario"
+                            onClick={() => handleEliminar(usr.id, usr.nombre)}
+                            title="Eliminar usuario"
+                            style={{
+                              backgroundColor: "#ef4444",
+                              color: "#fff",
+                              border: "none",
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontSize: "0.85rem"
+                            }}
+                          >
+                            🗑️ Eliminar
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* SECCIÓN IDEAS Y PROPUESTAS ENVIADAS */}
+        <div className="config-card full-width" style={{ marginTop: "24px" }}>
+          <div className="card-header">
+            <h2>💡 Ideas y Propuestas Enviadas</h2>
+            <span className="badge-contador">{listaPropuestas.length} propuestas</span>
+          </div>
+
+          {cargandoPropuestas ? (
+            <p className="cargando-texto">Cargando propuestas...</p>
+          ) : (
+            <div className="tabla-responsive">
+              <table className="tabla-usuarios">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Título</th>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listaPropuestas.length > 0 ? (
+                    listaPropuestas.map((prop) => (
+                      <tr key={prop.id}>
+                        <td>#{prop.id}</td>
+                        <td className="columna-nombre">
+                          <div className="user-avatar-mini">👤</div>
+                          {prop.usuario_nombre || "Anónimo"}
+                        </td>
+                        <td><strong>{prop.titulo}</strong></td>
+                        <td>{prop.descripcion}</td>
+                        <td>
+                          {prop.fecha ? new Date(prop.fecha).toLocaleDateString() : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: "center", padding: "16px" }}>
+                        No hay propuestas registradas aún.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -243,6 +418,45 @@ function Configuracion() {
                 </button>
                 <button type="submit" className="btn-guardar" disabled={guardando}>
                   {guardando ? "Registrando..." : "Registrar Usuario"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CAMBIAR CONTRASEÑA */}
+      {mostrarModalPassword && usuarioSeleccionado && (
+        <div className="modal-overlay">
+          <div className="modal-contenido" style={{ maxWidth: "420px" }}>
+            <div className="modal-header">
+              <h2>🔑 Cambiar Contraseña</h2>
+              <button className="btn-cerrar-modal" onClick={() => setMostrarModalPassword(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleCambiarPassword} className="modal-form">
+              <p style={{ margin: "0 0 15px 0", color: "#6b7280", fontSize: "0.95rem" }}>
+                Actualizar clave para: <strong>{usuarioSeleccionado.nombre}</strong> ({usuarioSeleccionado.email})
+              </p>
+
+              <div className="form-grupo">
+                <label>Nueva Contraseña *</label>
+                <input
+                  type="password"
+                  value={nuevaPassword}
+                  onChange={(e) => setNuevaPassword(e.target.value)}
+                  required
+                  placeholder="Ingresa la nueva contraseña"
+                  minLength={4}
+                />
+              </div>
+
+              <div className="modal-acciones">
+                <button type="button" className="btn-cancelar" onClick={() => setMostrarModalPassword(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-guardar" disabled={cambiandoPassword}>
+                  {cambiandoPassword ? "Guardando..." : "Actualizar Contraseña"}
                 </button>
               </div>
             </form>

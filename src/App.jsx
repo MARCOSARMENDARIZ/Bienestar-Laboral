@@ -8,6 +8,7 @@ import Perfil from './pages/Perfil'
 import './App.css'
 import Configuracion from './pages/configuracion'
 import Evaluaciones from './pages/Evaluaciones'
+import Bienestar from './pages/Bienestar'
 
 function App() {
 
@@ -30,6 +31,9 @@ function App() {
 
         {/* EVALUACIONES */}
         <Route path="/evaluaciones" element={<Evaluaciones />} />
+
+        {/* EVALUACIONES */}
+        <Route path="/bienestar" element={<Bienestar />} />
 
       </Routes>
 

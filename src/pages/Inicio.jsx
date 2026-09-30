@@ -27,11 +27,9 @@ function Inicio() {
             🏠 Inicio
           </a>
 
-          
-
-          <a href="#" className="menu-item">
+           <Link to="/bienestar" className="menu-item">
             ❤️ Bienestar
-          </a>
+          </Link>
 
           <Link to="/evaluaciones" className="menu-item">
             📋 Evaluaciones
