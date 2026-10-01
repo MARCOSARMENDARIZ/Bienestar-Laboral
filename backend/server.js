@@ -409,6 +409,75 @@ app.post('/api/encuestas/:id/respuestas', async (req, res) => {
   }
 });
 
+// Endpoint exclusivo para registrar una nueva propuesta
+app.post('/api/propuestas', async (req, res) => {
+  const { usuario_id, titulo, descripcion } = req.body;
+
+  // Validación básica en backend
+  if (!titulo || !descripcion) {
+    return res.status(400).json({ 
+      exito: false, 
+      mensaje: 'El título y la descripción son requeridos.' 
+    });
+  }
+
+  try {
+    const query = `
+      INSERT INTO propuestas (usuario_id, titulo, descripcion)
+      VALUES ($1, $2, $3)
+      RETURNING id, usuario_id, titulo, descripcion, fecha
+    `;
+    
+    // Si usuario_id es opcional (para publicaciones anónimas), se mandará null
+    const values = [usuario_id || null, titulo, descripcion];
+
+    const result = await pool.query(query, values);
+
+    res.status(201).json({
+      exito: true,
+      mensaje: 'Propuesta enviada',
+      propuesta: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error al registrar la propuesta:', error);
+    res.status(500).json({ 
+      exito: false, 
+      mensaje: 'Error interno del servidor al registrar la propuesta' 
+    });
+  }
+});
+// GET: Obtener la lista de propuestas enviadas (con el nombre del usuario si aplica)
+app.get('/api/propuestas', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        p.id, 
+        p.usuario_id, 
+        p.titulo, 
+        p.descripcion, 
+        p.fecha,
+        COALESCE(u.nombre, 'Anónimo') AS usuario_nombre
+      FROM propuestas p
+      LEFT JOIN usuarios u ON p.usuario_id = u.id
+      ORDER BY p.fecha DESC;
+    `;
+
+    const result = await pool.query(query);
+
+    // Retornamos la respuesta indicando 'exito: true' y el arreglo 'propuestas'
+    res.json({
+      exito: true,
+      propuestas: result.rows
+    });
+  } catch (error) {
+    console.error('Error al obtener la lista de propuestas:', error);
+    res.status(500).json({
+      exito: false,
+      mensaje: 'Error interno del servidor al consultar las propuestas'
+    });
+  }
+});
+
 // Arrancar el servidor AL FINAL de las rutas
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

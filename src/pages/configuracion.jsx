@@ -32,7 +32,7 @@ function Configuracion() {
       .then((res) => res.json())
       .then((data) => {
         if (data.exito) {
-          setListaUsuarios(data.usuarios);
+          setListaUsuarios(data.usuarios || []);
         }
       })
       .catch((err) => console.error("Error al obtener lista de usuarios:", err))
@@ -44,7 +44,15 @@ function Configuracion() {
     fetch("http://localhost:5000/api/propuestas")
       .then((res) => res.json())
       .then((data) => {
-        setListaPropuestas(Array.isArray(data) ? data : data.propuestas || []);
+        if (Array.isArray(data)) {
+          setListaPropuestas(data);
+        } else if (data.exito && Array.isArray(data.propuestas)) {
+          setListaPropuestas(data.propuestas);
+        } else if (Array.isArray(data.propuestas)) {
+          setListaPropuestas(data.propuestas);
+        } else {
+          setListaPropuestas([]);
+        }
       })
       .catch((err) => console.error("Error al obtener lista de propuestas:", err))
       .finally(() => setCargandoPropuestas(false));
@@ -216,59 +224,67 @@ function Configuracion() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listaUsuarios.map((usr) => (
-                    <tr key={usr.id}>
-                      <td>#{usr.id}</td>
-                      <td className="columna-nombre">
-                        <div className="user-avatar-mini">👤</div>
-                        {usr.nombre}
-                      </td>
-                      <td>{usr.email}</td>
-                      <td>
-                        <span className={`badge-rol ${usr.rol}`}>
-                          {usr.rol}
-                        </span>
-                      </td>
-                      <td>{usr.puesto || "—"}</td>
-                      <td>{usr.departamento || "—"}</td>
-                      <td>
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <button
-                            className="btn-password-usuario"
-                            onClick={() => abrirModalCambioPassword(usr)}
-                            title="Cambiar contraseña"
-                            style={{
-                              backgroundColor: "#f59e0b",
-                              color: "#fff",
-                              border: "none",
-                              padding: "6px 12px",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              fontSize: "0.85rem"
-                            }}
-                          >
-                            Cambio de Contraseña
-                          </button>
-                          <button
-                            className="btn-eliminar-usuario"
-                            onClick={() => handleEliminar(usr.id, usr.nombre)}
-                            title="Eliminar usuario"
-                            style={{
-                              backgroundColor: "#ef4444",
-                              color: "#fff",
-                              border: "none",
-                              padding: "6px 12px",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              fontSize: "0.85rem"
-                            }}
-                          >
-                            🗑️ Eliminar
-                          </button>
-                        </div>
+                  {listaUsuarios.length > 0 ? (
+                    listaUsuarios.map((usr) => (
+                      <tr key={usr.id}>
+                        <td>#{usr.id}</td>
+                        <td className="columna-nombre">
+                          <div className="user-avatar-mini">👤</div>
+                          {usr.nombre}
+                        </td>
+                        <td>{usr.email}</td>
+                        <td>
+                          <span className={`badge-rol ${usr.rol}`}>
+                            {usr.rol}
+                          </span>
+                        </td>
+                        <td>{usr.puesto || "—"}</td>
+                        <td>{usr.departamento || "—"}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <button
+                              className="btn-password-usuario"
+                              onClick={() => abrirModalCambioPassword(usr)}
+                              title="Cambiar contraseña"
+                              style={{
+                                backgroundColor: "#f59e0b",
+                                color: "#fff",
+                                border: "none",
+                                padding: "6px 12px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "0.85rem"
+                              }}
+                            >
+                              Cambio de Contraseña
+                            </button>
+                            <button
+                              className="btn-eliminar-usuario"
+                              onClick={() => handleEliminar(usr.id, usr.nombre)}
+                              title="Eliminar usuario"
+                              style={{
+                                backgroundColor: "#ef4444",
+                                color: "#fff",
+                                border: "none",
+                                padding: "6px 12px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "0.85rem"
+                              }}
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: "center", padding: "16px" }}>
+                        No hay usuarios registrados aún.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -289,6 +305,7 @@ function Configuracion() {
               <table className="tabla-usuarios">
                 <thead>
                   <tr>
+                    <th>ID</th>
                     <th>Usuario</th>
                     <th>Título</th>
                     <th>Descripción</th>
@@ -296,18 +313,20 @@ function Configuracion() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listaPropuestas.length > 0 ? (
-                    listaPropuestas.map((prop) => (
-                      <tr key={prop.id}>
-                        <td>#{prop.id}</td>
+                  {listaPropuestas && listaPropuestas.length > 0 ? (
+                    listaPropuestas.map((prop, idx) => (
+                      <tr key={prop.id || idx}>
+                        <td>#{prop.id || idx + 1}</td>
                         <td className="columna-nombre">
                           <div className="user-avatar-mini">👤</div>
-                          {prop.usuario_nombre || "Anónimo"}
+                          {prop.usuario_nombre || prop.nombre_usuario || prop.usuario || prop.nombre || "Anónimo"}
                         </td>
-                        <td><strong>{prop.titulo}</strong></td>
-                        <td>{prop.descripcion}</td>
+                        <td><strong>{prop.titulo || prop.title || "Sin título"}</strong></td>
+                        <td>{prop.descripcion || prop.description || prop.contenido || "Sin descripción"}</td>
                         <td>
-                          {prop.fecha ? new Date(prop.fecha).toLocaleDateString() : "—"}
+                          {prop.fecha || prop.created_at || prop.fecha_creacion
+                            ? new Date(prop.fecha || prop.created_at || prop.fecha_creacion).toLocaleDateString()
+                            : "—"}
                         </td>
                       </tr>
                     ))
