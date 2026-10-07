@@ -26,6 +26,9 @@ function Inicio() {
           <a href="#" className="menu-item active">
             📊 Tablero
           </a>
+            <Link to="/chat" className="menu-item">
+            Chat de ayuda
+          </Link>
 
           <Link to="/bienestar" className="menu-item">
             ❤️ Bienestar
@@ -116,38 +119,6 @@ function Inicio() {
 
         {/* SECCIÓN DOS COLUMNAS: ACCESOS RÁPIDOS Y ACTIVIDAD RECIENTE */}
         <div className="dashboard-grid">
-
-          {/* ACCESOS RÁPIDOS */}
-          <section className="dashboard-card">
-            <h3>🚀 Accesos Rápidos</h3>
-            <p className="card-description">Navega directamente a las áreas clave del sistema</p>
-
-            <div className="quick-actions">
-              <Link to="/evaluaciones" className="quick-btn">
-                <span className="quick-icon">📋</span>
-                <div>
-                  <strong>Realizar Evaluación</strong>
-                  <span>Mide tu nivel de bienestar actual</span>
-                </div>
-              </Link>
-
-              <Link to="/bienestar" className="quick-btn">
-                <span className="quick-icon">❤️</span>
-                <div>
-                  <strong>Módulo de Bienestar</strong>
-                  <span>Revisa recomendaciones y planes</span>
-                </div>
-              </Link>
-
-              <Link to="/perfil" className="quick-btn">
-                <span className="quick-icon">👤</span>
-                <div>
-                  <strong>Mi Perfil</strong>
-                  <span>Actualiza tu información personal</span>
-                </div>
-              </Link>
-            </div>
-          </section>
 
 
           {/* ACTIVIDAD Y ALERTAS RECIENTES */}

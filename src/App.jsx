@@ -9,6 +9,7 @@ import './App.css'
 import Configuracion from './pages/configuracion'
 import Evaluaciones from './pages/Evaluaciones'
 import Bienestar from './pages/Bienestar'
+import Chatbot from './pages/Chatbot'
 
 function App() {
 
@@ -34,6 +35,9 @@ function App() {
 
         {/* EVALUACIONES */}
         <Route path="/bienestar" element={<Bienestar />} />
+
+        {/* CHAT */}
+        <Route path="/chat" element={<Chatbot />} />
 
       </Routes>
 

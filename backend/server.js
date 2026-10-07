@@ -2,7 +2,15 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
+const { GoogleGenAI } = require('@google/genai');
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
+
 console.log("🔒 Password cargada correctamente:", process.env.DB_PASSWORD ? "SÍ" : "NO");
+console.log("🤖 Gemini API cargada correctamente:", process.env.GEMINI_API_KEY ? "SÍ" : "NO");
+
 
 const express = require('express');
 const cors = require('cors');
@@ -474,6 +482,75 @@ app.get('/api/propuestas', async (req, res) => {
     res.status(500).json({
       exito: false,
       mensaje: 'Error interno del servidor al consultar las propuestas'
+    });
+  }
+});
+// =========================================================================
+// ENDPOINT PARA EL CHATBOT CON INTELIGENCIA ARTIFICIAL (GEMINI)
+// =========================================================================
+app.post('/api/chatbot', async (req, res) => {
+  const { mensaje, historial } = req.body;
+
+  if (!mensaje || typeof mensaje !== 'string' || !mensaje.trim()) {
+    return res.status(400).json({
+      exito: false,
+      mensaje: 'El mensaje es obligatorio y no puede estar vacío'
+    });
+  }
+
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        exito: false,
+        mensaje: 'La API Key de Gemini no está configurada en el servidor'
+      });
+    }
+
+    // Formatear el historial garantizando que ningún 'part' quede vacío o undefined
+    const contents = [];
+
+    if (historial && Array.isArray(historial)) {
+      historial.forEach(h => {
+        // Extraer texto dependiendo de cómo lo envíe el frontend
+        const textoPart = h.text || h.content || (h.parts && h.parts[0] && h.parts[0].text);
+
+        // Solo agregar al historial si contiene texto válido
+        if (textoPart && typeof textoPart === 'string' && textoPart.trim() !== '') {
+          contents.push({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: textoPart.trim() }]
+          });
+        }
+      });
+    }
+
+    // Agregar el mensaje actual del usuario
+    contents.push({
+      role: 'user',
+      parts: [{ text: mensaje.trim() }]
+    });
+
+    // Llamada al modelo Gemini 2.5 Flash utilizando el SDK @google/genai
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: contents,
+      config: {
+        systemInstruction: 'Eres un asistente virtual servicial y amable integrado en la plataforma de bienestar.',
+        temperature: 0.7
+      }
+    });
+
+    const respuestaIA = response.text;
+
+    res.json({
+      exito: true,
+      respuesta: respuestaIA
+    });
+  } catch (error) {
+    console.error('Error en el endpoint del chatbot con Gemini:', error);
+    res.status(500).json({
+      exito: false,
+      mensaje: 'Error interno del servidor al procesar el mensaje con Gemini'
     });
   }
 });
