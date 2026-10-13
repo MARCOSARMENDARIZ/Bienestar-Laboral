@@ -555,6 +555,123 @@ app.post('/api/chatbot', async (req, res) => {
   }
 });
 
+// =========================================================================
+// ENDPOINT PARA ANALIZAR RESULTADOS DE ENCUESTA CON GEMINI IA (ADMIN)
+// =========================================================================
+app.get('/api/encuestas/:id/analizar-ia', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. Obtener la encuesta
+    const encuestaQuery = await pool.query('SELECT * FROM encuestas WHERE id = $1', [id]);
+    if (encuestaQuery.rows.length === 0) {
+      return res.status(404).json({ exito: false, mensaje: 'Encuesta no encontrada' });
+    }
+    const encuesta = encuestaQuery.rows[0];
+
+    // 2. Obtener preguntas de la tabla 'preguntas'
+    const preguntasQuery = await pool.query(
+      'SELECT id, texto_pregunta, tipo_respuesta FROM preguntas WHERE encuesta_id = $1',
+      [id]
+    );
+
+    // 3. Obtener respuestas reales uniendo 'respuestas_encuesta' y 'detalle_respuestas'
+    const respuestasQuery = await pool.query(
+      `SELECT 
+         dr.pregunta_id, 
+         dr.valor_numero, 
+         dr.valor_texto, 
+         dr.opcion_id, 
+         op.texto_opcion
+       FROM respuestas_encuesta re
+       JOIN detalle_respuestas dr ON re.id = dr.respuesta_encuesta_id
+       LEFT JOIN opciones_pregunta op ON dr.opcion_id = op.id
+       WHERE re.encuesta_id = $1`,
+      [id]
+    );
+
+    if (respuestasQuery.rows.length < 3) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: 'Aún no hay respuestas registradas para esta encuesta.'
+      });
+    }
+
+    // 4. Estructurar la información para procesar con Gemini
+    const datosProcesados = {
+      titulo: encuesta.titulo,
+      descripcion: encuesta.descripcion,
+      total_respuestas: respuestasQuery.rows.length,
+      preguntas: preguntasQuery.rows.map(p => ({
+        id: p.id,
+        texto: p.texto_pregunta,
+        tipo: p.tipo_respuesta
+      })),
+      respuestas: respuestasQuery.rows.map(r => ({
+        pregunta_id: r.pregunta_id,
+        calificacion_estrellas: r.valor_numero,
+        comentario_abierto: r.valor_texto,
+        opcion_seleccionada: r.texto_opcion
+      }))
+    };
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ exito: false, mensaje: 'Falta la GEMINI_API_KEY en el backend' });
+    }
+
+    // 5. Prompt optimizado
+    const prompt = `
+      Eres un experto analista corporativo y de clima organizacional.
+      Analiza la siguiente información de la encuesta "${datosProcesados.titulo}":
+
+      ${JSON.stringify(datosProcesados)}
+
+      INSTRUCCIONES DE RESPUESTA:
+      Responde ÚNICAMENTE con un objeto JSON válido y estrictamente en español con esta estructura exacta:
+      {
+        "resumen_ejecutivo": "Un texto explicativo claro y sintético del estado general en 2 o 3 oraciones.",
+        "sentimiento_predominante": "Positivo, Neutro o Negativo",
+        "puntuacion_promedio": "Ejemplo '4.2 / 5' o 'N/A' según las respuestas",
+        "hallazgos_clave": [
+          "Punto fuerte o hallazgo principal 1",
+          "Punto fuerte o hallazgo principal 2"
+        ],
+        "areas_criticas": [
+          "Área de oportunidad o problema detectado 1",
+          "Área de oportunidad o problema detectado 2"
+        ],
+        "plan_de_accion": [
+          "Recomendación práctica 1",
+          "Recomendación práctica 2"
+        ]
+      }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.3
+      }
+    });
+
+    const analisisJSON = JSON.parse(response.text);
+
+    res.json({
+      exito: true,
+      analisis: analisisJSON
+    });
+
+  } catch (error) {
+    console.error('Error al generar el análisis con Gemini:', error);
+    res.status(500).json({
+      exito: false,
+      mensaje: 'Error interno al procesar el análisis con la IA'
+    });
+  }
+});
+
 // Arrancar el servidor AL FINAL de las rutas
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

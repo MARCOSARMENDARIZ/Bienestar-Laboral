@@ -9,8 +9,13 @@ function Encuestas({ usuario }) {
   // Estados de modales
   const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
   const [mostrarModalResponder, setMostrarModalResponder] = useState(false);
+  const [mostrarModalResultados, setMostrarModalResultados] = useState(false);
 
-  // Estado para la encuesta activa al responder
+  // Estado para el Análisis de IA y Carga
+  const [analisisIA, setAnalisisIA] = useState(null);
+  const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
+
+  // Estado para la encuesta activa
   const [encuestaSeleccionada, setEncuestaSeleccionada] = useState(null);
   const [preguntasEncuesta, setPreguntasEncuesta] = useState([]);
   const [respuestasForm, setRespuestasForm] = useState({});
@@ -26,7 +31,8 @@ function Encuestas({ usuario }) {
   const usuarioActual = usuario || JSON.parse(localStorage.getItem("usuario") || "{}");
   const esAdmin = usuarioActual?.rol === "admin";
 
-  const API_URL = "http://localhost:5000/api/encuestas";
+  const backendHost = window.location.hostname;
+  const API_URL = `http://${backendHost}:5000/api/encuestas`;
 
   // 1. Obtener encuestas desde el Backend
   const cargarEncuestas = async () => {
@@ -48,7 +54,7 @@ function Encuestas({ usuario }) {
     cargarEncuestas();
   }, []);
 
-  // 2. Abrir modal y cargar preguntas/opciones de la encuesta seleccionada
+  // 2. Abrir modal para responder encuesta
   const abrirResponder = async (encuesta) => {
     setEncuestaSeleccionada(encuesta);
     setRespuestasForm({});
@@ -65,6 +71,37 @@ function Encuestas({ usuario }) {
     }
   };
 
+  // 3. Abrir modal para ver resultados (IA para Admin / Resumen personal para Usuario)
+  const abrirResultados = async (encuesta) => {
+    setEncuestaSeleccionada(encuesta);
+    setAnalisisIA(null);
+    setMostrarModalResultados(true);
+
+    try {
+      const res = await fetch(`${API_URL}/${encuesta.id}`);
+      const data = await res.json();
+      if (data.exito) {
+        setPreguntasEncuesta(data.encuesta.preguntas || []);
+      }
+
+      // Si el usuario es ADMIN, solicitamos el análisis automatizado con la IA
+      if (esAdmin) {
+        setCargandoAnalisis(true);
+        const resIA = await fetch(`${API_URL}/${encuesta.id}/analizar-ia`);
+        const dataIA = await resIA.json();
+        if (dataIA.exito) {
+          setAnalisisIA(dataIA.analisis);
+        } else {
+          console.error("No se pudo obtener el análisis de la IA:", dataIA.mensaje);
+        }
+      }
+    } catch (error) {
+      console.error("Error al cargar resultados:", error);
+    } finally {
+      setCargandoAnalisis(false);
+    }
+  };
+
   // Manejar cambios en las respuestas
   const handleRespuestaChange = (preguntaId, campo, valor) => {
     setRespuestasForm((prev) => ({
@@ -77,7 +114,7 @@ function Encuestas({ usuario }) {
     }));
   };
 
-  // 3. Guardar Respuestas del Usuario
+  // 4. Guardar Respuestas del Usuario
   const enviarRespuestas = async (e) => {
     e.preventDefault();
     const payloadRespuestas = Object.values(respuestasForm);
@@ -110,7 +147,7 @@ function Encuestas({ usuario }) {
     }
   };
 
-  // Manejo de la creación de múltiples preguntas para el Formulario de Nueva Encuesta
+  // Manejo de creación de preguntas
   const handleAgregarPregunta = () => {
     setNuevasPreguntas([
       ...nuevasPreguntas,
@@ -136,7 +173,7 @@ function Encuestas({ usuario }) {
     setNuevasPreguntas(list);
   };
 
-  // 4. Crear Nueva Encuesta
+  // 5. Crear Nueva Encuesta
   const guardarNuevaEncuesta = async (e) => {
     e.preventDefault();
 
@@ -173,7 +210,7 @@ function Encuestas({ usuario }) {
     }
   };
 
-  // Cálculos de Métricas Rápidas
+  // Métricas Rápidas
   const encuestasActivas = encuestas.filter((e) => e.estado === "Activa").length;
   const totalRespuestas = encuestas.reduce((acc, curr) => acc + (curr.respuestasCount || 0), 0);
 
@@ -184,7 +221,7 @@ function Encuestas({ usuario }) {
         <Link to="/inicio" className="btn-volver">←</Link>
         <div>
           <h1>📋 Encuestas y Cuestionarios</h1>
-          <p>Crea encuestas para los usuarios y analiza sus respuestas</p>
+          <p>Crea encuestas para los usuarios y analiza sus respuestas con IA</p>
         </div>
       </div>
 
@@ -256,7 +293,7 @@ function Encuestas({ usuario }) {
                       ✏️ Responder Encuesta
                     </button>
                   )}
-                  <button className="btn-resultados">
+                  <button className="btn-resultados" onClick={() => abrirResultados(enc)}>
                     📊 Ver Resultados
                   </button>
                 </div>
@@ -266,7 +303,7 @@ function Encuestas({ usuario }) {
         )}
       </div>
 
-      {/* MODAL 1: CREAR NUEVA ENCUESTA */}
+      {/* MODAL 1: CREAR ENCUESTA (Admin) */}
       {mostrarModalCrear && esAdmin && (
         <div className="modal-overlay">
           <div className="modal-contenido">
@@ -389,7 +426,7 @@ function Encuestas({ usuario }) {
                     {idx + 1}. {preg.texto_pregunta}
                   </label>
 
-                  {/* CASO 1: ESCALA DE 1 A 5 */}
+                  {/* ESCALA DE 1 A 5 */}
                   {preg.tipo_respuesta === "escala" && (
                     <div className="rating-options">
                       {[1, 2, 3, 4, 5].map((num) => (
@@ -405,7 +442,7 @@ function Encuestas({ usuario }) {
                     </div>
                   )}
 
-                  {/* CASO 2: OPCIÓN MÚLTIPLE */}
+                  {/* OPCIÓN MÚLTIPLE */}
                   {preg.tipo_respuesta === "opcion" && (
                     <div className="radio-group">
                       {preg.opciones?.map((opc) => (
@@ -422,7 +459,7 @@ function Encuestas({ usuario }) {
                     </div>
                   )}
 
-                  {/* CASO 3: TEXTO ABIERTO */}
+                  {/* TEXTO ABIERTO */}
                   {preg.tipo_respuesta === "texto" && (
                     <textarea
                       rows="3"
@@ -444,6 +481,130 @@ function Encuestas({ usuario }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: RESULTADOS (Análisis IA para Admin vs Resumen Personal para Usuario) */}
+      {mostrarModalResultados && encuestaSeleccionada && (
+        <div className="modal-overlay">
+          <div className="modal-contenido" style={{ maxWidth: "700px" }}>
+            <div className="modal-header">
+              <h2>
+                {esAdmin
+                  ? `🤖 Análisis con IA: ${encuestaSeleccionada.titulo}`
+                  : `👤 Mi Resumen: ${encuestaSeleccionada.titulo}`}
+              </h2>
+              <button className="btn-cerrar-modal" onClick={() => setMostrarModalResultados(false)}>✕</button>
+            </div>
+
+            <div style={{ padding: "15px 0" }}>
+              {esAdmin ? (
+                /* VISTA ADMINISTRADOR: RESULTADOS CON ANÁLISIS DE IA */
+                <div>
+                  <p style={{ color: "#4b5563", marginBottom: "15px" }}>
+                    <strong>Modo Administrador:</strong> Diagnóstico generado automáticamente a partir de todas las respuestas recopiladas.
+                  </p>
+
+                  {cargandoAnalisis ? (
+                    <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                      <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#2563eb" }}>🤖 La IA está analizando las respuestas...</p>
+                      <p style={{ color: "#6b7280", fontSize: "0.9rem" }}>Sintetizando conclusiones, áreas de oportunidad y recomendaciones.</p>
+                    </div>
+                  ) : analisisIA ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {/* MÉTRICAS CLAVE */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        <div style={{ padding: "12px", background: "#f3f4f6", borderRadius: "8px", textAlign: "center" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>Sentimiento Predominante</span>
+                          <p style={{ fontWeight: "bold", fontSize: "1.1rem", margin: "4px 0 0", color: "#2563eb" }}>
+                            {analisisIA.sentimiento_predominante || "Neutro"}
+                          </p>
+                        </div>
+                        <div style={{ padding: "12px", background: "#f3f4f6", borderRadius: "8px", textAlign: "center" }}>
+                          <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>Puntuación Estimada</span>
+                          <p style={{ fontWeight: "bold", fontSize: "1.1rem", margin: "4px 0 0", color: "#16a34a" }}>
+                            {analisisIA.puntuacion_promedio || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* RESUMEN EJECUTIVO */}
+                      <div>
+                        <h3 style={{ fontSize: "1rem", color: "#1f2937" }}>📝 Resumen Ejecutivo</h3>
+                        <p style={{ color: "#4b5563", lineHeight: "1.5" }}>{analisisIA.resumen_ejecutivo}</p>
+                      </div>
+
+                      {/* HALLAZGOS CLAVE */}
+                      <div>
+                        <h3 style={{ fontSize: "1rem", color: "#16a34a" }}>✅ Hallazgos Clave / Puntos Fuertes</h3>
+                        <ul style={{ paddingLeft: "20px", color: "#374151" }}>
+                          {analisisIA.hallazgos_clave?.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: "4px" }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* ÁREAS CRÍTICAS */}
+                      <div>
+                        <h3 style={{ fontSize: "1rem", color: "#dc2626" }}>⚠️ Áreas Críticas / Oportunidad</h3>
+                        <ul style={{ paddingLeft: "20px", color: "#374151" }}>
+                          {analisisIA.areas_criticas?.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: "4px" }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* PLAN DE ACCIÓN */}
+                      <div>
+                        <h3 style={{ fontSize: "1rem", color: "#2563eb" }}>💡 Recomendaciones Sugeridas</h3>
+                        <ul style={{ paddingLeft: "20px", color: "#374151" }}>
+                          {analisisIA.plan_de_accion?.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: "4px" }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ textAlign: "center", color: "#dc2626" }}>No se pudo cargar el análisis de la IA o aún no hay suficientes respuestas registradas.</p>
+                  )}
+                </div>
+              ) : (
+                /* VISTA USUARIO NORMAL: RESUMEN PERSONAL */
+                <div>
+                  <p style={{ color: "#4b5563", marginBottom: "15px" }}>
+                    <strong>Resumen Individual:</strong> Confirmación de participación en esta evaluación.
+                  </p>
+
+                  <div style={{ padding: "12px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "8px", marginBottom: "20px" }}>
+                    <span style={{ color: "#065f46", fontWeight: "bold" }}>
+                      ✅ Estado: Encuesta completada
+                    </span>
+                    <p style={{ fontSize: "0.85rem", color: "#047857", margin: "4px 0 0" }}>
+                      Gracias por colaborar. Tus respuestas se incorporaron al análisis global de la plataforma.
+                    </p>
+                  </div>
+
+                  <h3>Preguntas Evaluadas:</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
+                    {preguntasEncuesta.map((p, idx) => (
+                      <div key={p.id} style={{ padding: "10px", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
+                        <p style={{ fontWeight: "bold", margin: 0 }}>{idx + 1}. {p.texto_pregunta}</p>
+                        <span style={{ fontSize: "0.8rem", color: "#16a34a", fontWeight: "500" }}>
+                          ✓ Registrada
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-acciones">
+              <button className="btn-cancelar" onClick={() => setMostrarModalResultados(false)}>
+                Cerrar Reporte
+              </button>
+            </div>
           </div>
         </div>
       )}
