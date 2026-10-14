@@ -672,6 +672,67 @@ app.get('/api/encuestas/:id/analizar-ia', async (req, res) => {
   }
 });
 
+// =========================================================================
+// ENDPOINT PARA ANALIZAR LA VIABILIDAD DE UNA PROPUESTA CON GEMINI IA
+// =========================================================================
+app.post('/api/analizar-viabilidad', async (req, res) => {
+  const { titulo, descripcion } = req.body;
+
+  if (!titulo && !descripcion) {
+    return res.status(400).json({
+      exito: false,
+      mensaje: 'Se requiere un título o descripción para analizar la propuesta.'
+    });
+  }
+
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        exito: false,
+        mensaje: 'La API Key de Gemini no está configurada en el servidor'
+      });
+    }
+
+    const prompt = `
+      Eres un experto consultor de proyectos y analista de viabilidad corporativa.
+      Analiza la siguiente propuesta de mejora o idea de negocio enviada por un colaborador:
+
+      Título: "${titulo || 'Sin título'}"
+      Descripción: "${descripcion || 'Sin descripción'}"
+
+      Por favor, proporciona un análisis de viabilidad profesional y constructivo que incluya:
+      1. Resumen general de la viabilidad.
+      2. Puntos fuertes o beneficios potenciales.
+      3. Posibles riesgos o áreas de atención.
+      4. Recomendación o siguiente paso sugerido.
+
+      Redacta la respuesta en un tono profesional, claro, fluido y directamente en español. No uses bloques JSON estrictos, preséntalo formateado de manera limpia con párrafos o viñetas cortas.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash", // O el modelo que estés utilizando en tu configuración
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.5
+      }
+    });
+
+    const resumenIA = response.text;
+
+    res.json({
+      exito: true,
+      resumen: resumenIA
+    });
+
+  } catch (error) {
+    console.error('Error al generar el análisis de viabilidad con Gemini:', error);
+    res.status(500).json({
+      exito: false,
+      mensaje: 'Error interno al procesar el análisis de viabilidad con la IA'
+    });
+  }
+});
+
 // Arrancar el servidor AL FINAL de las rutas
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

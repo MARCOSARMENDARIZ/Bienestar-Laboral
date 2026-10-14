@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+
 function Inicio() {
   const [usuario, setUsuario] = useState(null);
 
@@ -26,7 +27,7 @@ function Inicio() {
           <a href="#" className="menu-item active">
             📊 Tablero
           </a>
-            <Link to="/chat" className="menu-item">
+          <Link to="/chat" className="menu-item">
             Chat de ayuda
           </Link>
 
@@ -39,7 +40,8 @@ function Inicio() {
           </Link>
 
           <Link to="/perfil" className="menu-item">
-            👤 Mi perfil
+            <i className="bi bi-people-fill icono-menu"></i>
+            <span>Mi perfil</span>
           </Link>
 
         </nav>
@@ -47,7 +49,7 @@ function Inicio() {
         <div className="sidebar-bottom">
           {usuario?.rol === "admin" && (
             <Link to="/configuracion" className="menu-item">
-              ⚙️ Configuración
+              <i class="bi bi-gear-fill"></i> <span> Configuración </span>
             </Link>
           )}
 

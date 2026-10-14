@@ -26,6 +26,12 @@ function Configuracion() {
   const [nuevaPassword, setNuevaPassword] = useState("");
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
+  // Estados para el Modal de Viabilidad con IA
+  const [mostrarModalViabilidad, setMostrarModalViabilidad] = useState(false);
+  const [propuestaSeleccionada, setPropuestaSeleccionada] = useState(null);
+  const [cargandoViabilidad, setCargandoViabilidad] = useState(false);
+  const [resumenViabilidadIA, setResumenViabilidadIA] = useState("");
+
   // Cargar lista de usuarios
   const obtenerUsuarios = () => {
     fetch("http://localhost:5000/api/usuarios")
@@ -177,6 +183,39 @@ function Configuracion() {
     }
   };
 
+  // Abrir modal de viabilidad y llamar a la IA
+  const abrirModalViabilidad = async (propuesta) => {
+    setPropuestaSeleccionada(propuesta);
+    setMostrarModalViabilidad(true);
+    setCargandoViabilidad(true);
+    setResumenViabilidadIA("");
+
+    try {
+      const res = await fetch("http://localhost:5000/api/analizar-viabilidad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: propuesta.id,
+          titulo: propuesta.titulo || propuesta.title,
+          descripcion: propuesta.descripcion || propuesta.description || propuesta.contenido
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && (data.exito || data.resumen)) {
+        setResumenViabilidadIA(data.resumen || data.mensaje || "Análisis generado con éxito.");
+      } else {
+        setResumenViabilidadIA(data.mensaje || "No se pudo generar el análisis de viabilidad.");
+      }
+    } catch (error) {
+      console.error("Error al conectar con el servicio de IA:", error);
+      setResumenViabilidadIA("Error de conexión al intentar conectar con el servicio de IA.");
+    } finally {
+      setCargandoViabilidad(false);
+    }
+  };
+
   return (
     <div className="config-container">
       {/* ENCABEZADO */}
@@ -309,6 +348,7 @@ function Configuracion() {
                     <th>Usuario</th>
                     <th>Título</th>
                     <th>Descripción</th>
+                    <th>Análisis y viabilidad</th>
                     <th>Fecha</th>
                   </tr>
                 </thead>
@@ -324,6 +364,15 @@ function Configuracion() {
                         <td><strong>{prop.titulo || prop.title || "Sin título"}</strong></td>
                         <td>{prop.descripcion || prop.description || prop.contenido || "Sin descripción"}</td>
                         <td>
+                          <button
+                            className="btn-analizar"
+                            onClick={() => abrirModalViabilidad(prop)}
+                          >
+                            <i className="bi bi-stars me-2"></i>
+                            Analizar
+                          </button>
+                        </td>
+                        <td>
                           {prop.fecha || prop.created_at || prop.fecha_creacion
                             ? new Date(prop.fecha || prop.created_at || prop.fecha_creacion).toLocaleDateString()
                             : "—"}
@@ -332,7 +381,7 @@ function Configuracion() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: "center", padding: "16px" }}>
+                      <td colSpan="6" style={{ textAlign: "center", padding: "16px" }}>
                         No hay propuestas registradas aún.
                       </td>
                     </tr>
@@ -479,6 +528,78 @@ function Configuracion() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE VIABILIDAD CON IA */}
+      {mostrarModalViabilidad && propuestaSeleccionada && (
+        <div
+          className="modal-overlay"
+          onClick={() => setMostrarModalViabilidad(false)}
+        >
+          <div
+            className="modal-contenido modal-viabilidad"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>
+                <i className="bi bi-stars me-2"></i>
+                Resumen de viabilidad
+              </h2>
+
+              <button
+                className="btn-cerrar-modal"
+                onClick={() => setMostrarModalViabilidad(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-form">
+              <span className="etiqueta-ia">
+                <i className="bi bi-lightbulb me-2"></i>
+                Análisis de propuesta
+              </span>
+
+              <h3>
+                {propuestaSeleccionada.titulo ||
+                  propuestaSeleccionada.title ||
+                  "Propuesta sin título"}
+              </h3>
+
+              <div className="viabilidad-seccion">
+                <h4>Descripción</h4>
+                <p>
+                  {propuestaSeleccionada.descripcion ||
+                    propuestaSeleccionada.description ||
+                    propuestaSeleccionada.contenido ||
+                    "No hay descripción disponible."}
+                </p>
+              </div>
+
+              <div className="viabilidad-seccion">
+                <h4>
+                  <i className="bi bi-graph-up me-2"></i>
+                  Resumen de viabilidad
+                </h4>
+                {cargandoViabilidad ? (
+                  <p className="cargando-texto">Generando análisis de viabilidad con IA...</p>
+                ) : (
+                  <p>{resumenViabilidadIA}</p>
+                )}
+              </div>
+
+              <div className="modal-acciones">
+                <button
+                  type="button"
+                  className="btn-cancelar"
+                  onClick={() => setMostrarModalViabilidad(false)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
